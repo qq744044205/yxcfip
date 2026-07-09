@@ -77,8 +77,14 @@ const CF6 = [
   ["2400:cb00::", 32], ["2606:4700::", 32], ["2803:f800::", 32], ["2405:b500::", 32],
   ["2405:8100::", 32], ["2a06:98c0::", 29], ["2c0f:f248::", 32],
 ];
+const REMOTE_CACHE = new Map();
+const REMOTE_CACHE_TTL_MS = 10 * 60 * 1000;
 
 async function fetchRemotePreferredAddresses(source) {
+  const now = Date.now();
+  const cached = REMOTE_CACHE.get(source);
+  if (cached && cached.expiresAt > now) return cached.items;
+
   try {
     const url = new URL(source);
     if (url.protocol !== "https:" || url.username || url.password) return [];
@@ -92,9 +98,11 @@ async function fetchRemotePreferredAddresses(source) {
     clearTimeout(timer);
     if (!response.ok || Number(response.headers.get("content-length") || 0) > 262144) return [];
     const text = (await response.text()).slice(0, 262144);
-    return parseRemotePreferredText(text).slice(0, 100);
+    const items = parseRemotePreferredText(text).slice(0, 100);
+    REMOTE_CACHE.set(source, { items, expiresAt: now + REMOTE_CACHE_TTL_MS });
+    return items;
   } catch {
-    return [];
+    return cached ? cached.items : [];
   }
 }
 
