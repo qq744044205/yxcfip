@@ -26,7 +26,10 @@ export default {
       .slice(0, 5);
 
     const direct = configured.filter((item) => !item.address.startsWith("https://"));
-    const remote = (await Promise.all(sources.map(fetchRemotePreferredAddresses))).flat();
+    const kvPreferred = await fetchKvPreferredAddresses(env);
+    const remote = kvPreferred.length
+      ? kvPreferred
+      : (await Promise.all(sources.map(fetchRemotePreferredAddresses))).flat();
 
     const items = [{ address: domain, remark: "", skipCloudflareCheck: true }, ...direct, ...remote];
     const addresses = [];
@@ -79,6 +82,18 @@ const CF6 = [
 ];
 const REMOTE_CACHE = new Map();
 const REMOTE_CACHE_TTL_MS = 10 * 60 * 1000;
+const PREFERRED_KV_KEY = "preferred-addresses";
+
+async function fetchKvPreferredAddresses(env) {
+  try {
+    if (!env.PREFERRED_KV || typeof env.PREFERRED_KV.get !== "function") return [];
+    const text = await env.PREFERRED_KV.get(PREFERRED_KV_KEY);
+    if (!text) return [];
+    return parseRemotePreferredText(text).slice(0, 100);
+  } catch {
+    return [];
+  }
+}
 
 async function fetchRemotePreferredAddresses(source) {
   const now = Date.now();
@@ -126,7 +141,7 @@ function parsePreferredAddress(value) {
 }
 
 function normalizeAddress(value) {
-  let address = value.trim().toLowerCase();
+  let address = value.trim().replace(/^\uFEFF/, "").toLowerCase();
   const v6 = address.match(/^\[([0-9a-f:]+)\](?::\d+)?$/i);
   if (v6) return v6[1];
   if (/^(?:\d{1,3}\.){3}\d{1,3}:\d+$/.test(address)) address = address.replace(/:\d+$/, "");
