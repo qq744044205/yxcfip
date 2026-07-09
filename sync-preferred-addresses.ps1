@@ -14,6 +14,19 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Normalize-Remark {
+  param([string]$Remark)
+
+  $value = $Remark.Trim()
+  if (-not $value) { return "" }
+
+  $value = $value -replace "\s*[\[\(（【].*$", ""
+  $value = $value.Trim()
+  if (-not $value) { return "" }
+
+  return ($value -split "\s+", 2)[0].Trim()
+}
+
 function Normalize-Line {
   param([string]$Line)
 
@@ -23,7 +36,7 @@ function Normalize-Line {
 
   $parts = $value -split "#", 2
   $left = $parts[0].Trim()
-  $remark = if ($parts.Count -gt 1) { $parts[1].Trim() } else { $DefaultRemark.Trim() }
+  $remark = if ($parts.Count -gt 1) { Normalize-Remark $parts[1] } else { Normalize-Remark $DefaultRemark }
 
   $match = [regex]::Match($left, "(\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?")
   if (-not $match.Success) { return $null }
