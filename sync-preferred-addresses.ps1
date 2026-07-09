@@ -9,7 +9,13 @@ param(
 
   [string]$DefaultRemark = "",
 
-  [switch]$NoPush
+  [string]$CloudflareKvNamespaceId = "",
+
+  [string]$CloudflareKvKey = "preferred-addresses",
+
+  [switch]$NoPush,
+
+  [switch]$NoKvUpload
 )
 
 $ErrorActionPreference = "Stop"
@@ -49,6 +55,19 @@ function Normalize-Line {
   return $ip
 }
 
+function Upload-ToCloudflareKv {
+  param(
+    [string]$NamespaceId,
+    [string]$Key,
+    [string]$Path
+  )
+
+  if (-not $NamespaceId -or $NoKvUpload) { return }
+
+  Write-Host "Uploading preferred addresses to Cloudflare KV key '$Key'..."
+  npx wrangler kv key put $Key --namespace-id $NamespaceId --path $Path --remote
+}
+
 $sourcePath = Resolve-Path -LiteralPath $SourceFile
 $repoRoot = Resolve-Path -LiteralPath $RepoPath
 $targetPath = Join-Path $repoRoot $TargetFile
@@ -72,6 +91,7 @@ try {
   $changes = git diff --cached --name-only
   if (-not $changes) {
     Write-Host "preferred-addresses.txt has no changes."
+    Upload-ToCloudflareKv -NamespaceId $CloudflareKvNamespaceId -Key $CloudflareKvKey -Path $targetPath
     return
   }
 
@@ -80,6 +100,8 @@ try {
   if (-not $NoPush) {
     git push
   }
+
+  Upload-ToCloudflareKv -NamespaceId $CloudflareKvNamespaceId -Key $CloudflareKvKey -Path $targetPath
 } finally {
   Pop-Location
 }
