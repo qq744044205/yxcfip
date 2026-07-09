@@ -1,0 +1,29 @@
+Repository: qq744044205/yxcfip
+
+Preferred addresses file:
+https://raw.githubusercontent.com/qq744044205/yxcfip/main/preferred-addresses.txt
+
+Cloudflare Worker env var:
+PREFERRED_ADDRESSES=https://raw.githubusercontent.com/qq744044205/yxcfip/main/preferred-addresses.txt
+
+Files prepared locally:
+1. worker-final-github-preferred.js
+   Upload this file to Cloudflare Worker, or add it to the GitHub repo for backup.
+
+2. sync-preferred-addresses.ps1
+   Run this on Windows after CF-ips-scanner exports a result text file.
+
+Example sync command:
+powershell -ExecutionPolicy Bypass -File .\sync-preferred-addresses.ps1 -SourceFile "D:\cf-result.txt" -RepoPath "D:\yxcfip" -TargetFile "preferred-addresses.txt"
+
+Recommended preferred-addresses.txt format:
+104.18.84.156#Telecom-HKG
+104.21.94.108#Telecom-SIN
+104.21.80.27#Unicom-NRT
+
+Plain IPs are also supported:
+104.18.84.156
+104.21.94.108
+
+Important:
+The GitHub connector currently has read access but not write access to qq744044205/yxcfip, so Codex could not push files directly to the repository.
