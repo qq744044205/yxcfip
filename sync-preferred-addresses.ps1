@@ -20,7 +20,7 @@ function Normalize-Remark {
   $value = $Remark.Trim()
   if (-not $value) { return "" }
 
-  $value = $value -replace "\s*[\[\(（【].*$", ""
+  $value = $value -replace "\s*[\[\(].*$", ""
   $value = $value.Trim()
   if (-not $value) { return "" }
 
